@@ -152,10 +152,13 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         {
             bool sign = signbit(channelData[i]);
             signBuffers[channel].WriteSignToBuffer(sign);
+            //DBG(channelData[i]);
         }
     }
 
-    const int sampleDifference = signBuffers[0].GetSampleDifference();
+    const double sampleDifference = signBuffers[0].currentSampleDifference;
+
+    //const double sampleDifference = signBuffers[0].GetSampleDifference();
     const double secondsDifference = sampleDifference / getSampleRate();
     const double frequency = 1 / secondsDifference;
     if (frequency > 0 && frequency < 20000.0) 

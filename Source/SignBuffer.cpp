@@ -1,8 +1,9 @@
 #include "SignBuffer.h"
 #include <cmath>
 #include <float.h>
+#include "PluginProcessor.h"
 
-const double SignBuffer::threshold = 0.5;
+const double SignBuffer::threshold = 100;
 
 SignBuffer::SignBuffer()
 {
@@ -28,6 +29,11 @@ void SignBuffer::WriteSignToBuffer(const bool sign)
 	signs[writePointer] = sign;
 	writePointer++;
 	writePointer %= length;
+
+	if (writePointer == 0)
+	{
+		currentSampleDifference = GetSampleDifference();
+	}
 }
 
 double SignBuffer::GetSampleDifference()
@@ -41,6 +47,8 @@ double SignBuffer::GetSampleDifference()
 	{
 		const double modifiedAutocorrelationAtIndex = ModifiedAutocorrelation(i);
 
+		//DBG(modifiedAutocorrelationAtIndex);
+
 		const bool newIsBelowThreshold = modifiedAutocorrelationAtIndex < threshold;
 		
 		if (newIsBelowThreshold != isBelowThreshold)
@@ -53,6 +61,7 @@ double SignBuffer::GetSampleDifference()
 				{
 					if (enterThresholdIndexes[j] < 0) 
 					{
+						//DBG(modifiedAutocorrelationAtIndex);
 						enterThresholdIndexes[j] = i;
 						break;
 					}
@@ -89,13 +98,13 @@ double SignBuffer::ModifiedAutocorrelation(const unsigned int lag)
 
 	for (unsigned int i = 0; i < GetMaxUsableIndex(); ++i)
 	{
-		sum += abs(GetSignAtOffsetIndex(i) - GetSignAtOffsetIndex(i + lag));
+		sum += std::abs(GetSignAtOffsetIndex(i) - GetSignAtOffsetIndex(i + lag));
 	}
 
 	return sum;
 }
 
-int SignBuffer::GetMaxUsableIndex()
+unsigned int SignBuffer::GetMaxUsableIndex()
 {
-	return (int) floor(length / 2.0);
+	return (unsigned int) floor((double) length / 2.0);
 }
