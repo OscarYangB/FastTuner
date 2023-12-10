@@ -2,18 +2,23 @@
 class SignBuffer
 {
 public:
-	SignBuffer(const unsigned int newLength);
-	void WriteSignToBuffer(const bool sign);
+	SignBuffer();
+	void InitializeBuffer(const unsigned int newLength);
 
-	double DetectPitch();
+	~SignBuffer();
+
+	void WriteSignToBuffer(const bool sign);
+	double GetSampleDifference();
 
 private:
 	bool* signs;
 	unsigned int length;
 	unsigned int writePointer;
 
-	double DoModifiedAutocorrelationOnIndex(const unsigned int index);
+	bool GetSignAtOffsetIndex(const unsigned int index);
+	double ModifiedAutocorrelation(const unsigned int lag);
+	int GetMaxUsableIndex();
 
-	static double threshold;
+	static const double threshold;
 };
 

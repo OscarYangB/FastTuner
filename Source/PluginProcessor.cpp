@@ -94,9 +94,13 @@ void NewProjectAudioProcessor::changeProgramName (int index, const juce::String&
 void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     const int totalNumInputChannels = getTotalNumInputChannels();
-    const unsigned int bufferLength = ceil(sampleRate / minimumFrequency);
+    const unsigned int bufferLength = (int) ceil(sampleRate / minimumFrequency) * 2;
 
-    std::fill_n(signBuffers, totalNumInputChannels, SignBuffer(bufferLength));
+    signBuffers = new SignBuffer[totalNumInputChannels]();
+    for (int i = 0; i < totalNumInputChannels; ++i)
+    {
+        signBuffers[i].InitializeBuffer(bufferLength);
+    }
 }
 
 void NewProjectAudioProcessor::releaseResources()
@@ -146,12 +150,18 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
-            float sign = signbit(channelData[i]);
+            bool sign = signbit(channelData[i]);
             signBuffers[channel].WriteSignToBuffer(sign);
         }
     }
 
-    DBG(signBuffers[0].DetectPitch());
+    const int sampleDifference = signBuffers[0].GetSampleDifference();
+    const double secondsDifference = sampleDifference / getSampleRate();
+    const double frequency = 1 / secondsDifference;
+    if (frequency > 0 && frequency < 20000.0) 
+    {
+        DBG(frequency);
+    }
 }
 
 //==============================================================================
