@@ -1,27 +1,15 @@
 #include "SignBuffer.h"
 #include <cmath>
 #include <float.h>
-#include "PluginProcessor.h"
 
-const double SignBuffer::threshold = 100;
+const unsigned int SignBuffer::threshold = 10;
 
-SignBuffer::SignBuffer()
-{
-	length = 0;
-	signs = nullptr;
-	writePointer = 0;
-}
-
-void SignBuffer::InitializeBuffer(const unsigned int newLength)
+SignBuffer::SignBuffer(const unsigned int newLength)
 {
 	length = newLength;
-	signs = new bool[newLength];
+	maxUsableIndex = newLength / 2;
+	signs = signs = new bool[newLength];
 	writePointer = 0;
-}
-
-SignBuffer::~SignBuffer()
-{
-	delete[] signs;
 }
 
 void SignBuffer::WriteSignToBuffer(const bool sign)
@@ -32,79 +20,58 @@ void SignBuffer::WriteSignToBuffer(const bool sign)
 
 	if (writePointer == 0)
 	{
-		currentSampleDifference = GetSampleDifference();
+		currentPeriod = CalculatePeriod();
 	}
 }
 
-double SignBuffer::GetSampleDifference()
+double SignBuffer::GetPeriod()
 {
-	int enterThresholdIndexes[2] = { -1 , -1 };
-	int exitThresholdIndexes[2] = { -1 , -1 };
+	return currentPeriod;
+}
 
-	bool isBelowThreshold = false;
+double SignBuffer::CalculatePeriod()
+{
+	bool exitedThreshold = false;
+	unsigned int minimaIndex = 0;
+	unsigned int minima = INT_MAX;
 
-	for (unsigned int i = 0; i < GetMaxUsableIndex(); ++i)
+	for (unsigned int i = 1; i < maxUsableIndex; ++i)
 	{
-		const double modifiedAutocorrelationAtIndex = ModifiedAutocorrelation(i);
+		const unsigned int modifiedAutocorrelationAtIndex = ModifiedAutocorrelation(i);
+		const bool isInThreshold = modifiedAutocorrelationAtIndex <= threshold;
 
-		//DBG(modifiedAutocorrelationAtIndex);
-
-		const bool newIsBelowThreshold = modifiedAutocorrelationAtIndex < threshold;
-		
-		if (newIsBelowThreshold != isBelowThreshold)
+		if (!isInThreshold)
 		{
-			isBelowThreshold = !isBelowThreshold;
-
-			if (isBelowThreshold)
+			if (minimaIndex > 0)
 			{
-				for (int j = 0; j < 2; ++j) 
-				{
-					if (enterThresholdIndexes[j] < 0) 
-					{
-						//DBG(modifiedAutocorrelationAtIndex);
-						enterThresholdIndexes[j] = i;
-						break;
-					}
-				}
+				return minimaIndex;
 			}
-			else
-			{
-				for (int j = 0; j < 2; ++j)
-				{
-					if (exitThresholdIndexes[j] < 0)
-					{
-						exitThresholdIndexes[j] = i;
-						break;
-					}
-				}
-			}
+			exitedThreshold = true;
+		}
+		else if (exitedThreshold && modifiedAutocorrelationAtIndex < minima)
+		{
+			minimaIndex = i;
+			minima = modifiedAutocorrelationAtIndex;
 		}
 	}
 
-	double firstIndex = (enterThresholdIndexes[0] + exitThresholdIndexes[0]) / 2.0;
-	double secondIndex = (enterThresholdIndexes[1] + exitThresholdIndexes[1]) / 2.0;
-	return secondIndex - firstIndex;
+	return 0.0f;
 }
 
-bool SignBuffer::GetSignAtOffsetIndex(const unsigned int index)
+unsigned int SignBuffer::ModifiedAutocorrelation(const unsigned int lag)
 {
-	int offsetIndex = (writePointer + index) % length;
-	return signs[offsetIndex];
-}
+	unsigned int sum = 0;
 
-double SignBuffer::ModifiedAutocorrelation(const unsigned int lag)
-{
-	int sum = 0;
-
-	for (unsigned int i = 0; i < GetMaxUsableIndex(); ++i)
+	for (unsigned int i = 0; i < maxUsableIndex; ++i)
 	{
-		sum += std::abs(GetSignAtOffsetIndex(i) - GetSignAtOffsetIndex(i + lag));
+		sum += GetSignAtOffsetIndex(i) ^ GetSignAtOffsetIndex(i + lag);
 	}
 
 	return sum;
 }
 
-unsigned int SignBuffer::GetMaxUsableIndex()
+bool SignBuffer::GetSignAtOffsetIndex(const unsigned int index)
 {
-	return (unsigned int) floor((double) length / 2.0);
+	unsigned int offsetIndex = (writePointer + index) % length;
+	return signs[offsetIndex];
 }

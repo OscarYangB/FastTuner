@@ -95,12 +95,7 @@ void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 {
     const int totalNumInputChannels = getTotalNumInputChannels();
     const unsigned int bufferLength = (int) ceil(sampleRate / minimumFrequency) * 2;
-
-    signBuffers = new SignBuffer[totalNumInputChannels]();
-    for (int i = 0; i < totalNumInputChannels; ++i)
-    {
-        signBuffers[i].InitializeBuffer(bufferLength);
-    }
+    signBuffer = SignBuffer(bufferLength);
 }
 
 void NewProjectAudioProcessor::releaseResources()
@@ -137,34 +132,32 @@ bool NewProjectAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 
 void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ScopedNoDenormals noDenormals;
     int totalNumInputChannels  = getTotalNumInputChannels();
     int totalNumOutputChannels = getTotalNumOutputChannels();
 
-    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i) 
     {
-        float* channelData = buffer.getWritePointer (channel);
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            bool sign = signbit(channelData[i]);
-            signBuffers[channel].WriteSignToBuffer(sign);
-            //DBG(channelData[i]);
-        }
+        buffer.clear(i, 0, buffer.getNumSamples());
     }
 
-    const double sampleDifference = signBuffers[0].currentSampleDifference;
+    float* const* samples = buffer.getArrayOfWritePointers();
+    for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
+    {
+        double monoSample = 0.0;
+        for (int channelIndex = 0; channelIndex < totalNumInputChannels; ++channelIndex)
+        {
+            monoSample += samples[channelIndex][sampleIndex];
+        }
 
-    //const double sampleDifference = signBuffers[0].GetSampleDifference();
+        bool sign = signbit(monoSample);
+        signBuffer.WriteSignToBuffer(sign);
+    }
+
+    const double sampleDifference = signBuffer.GetPeriod();
+    if (sampleDifference == 0.0) return;
     const double secondsDifference = sampleDifference / getSampleRate();
     const double frequency = 1 / secondsDifference;
-    if (frequency > 0 && frequency < 20000.0) 
-    {
-        DBG(frequency);
-    }
+    DBG(frequency);
 }
 
 //==============================================================================

@@ -5,6 +5,8 @@
               pluginManufacturer="Oscar Yang">
   <MAINGROUP id="hZdVc4" name="TrackingHarmonicEqualizer">
     <GROUP id="{F5E5BB56-F5B5-3C32-E094-7AC47CCD5892}" name="Source">
+      <FILE id="tqpv9J" name="SignBuffer.cpp" compile="1" resource="0" file="Source/SignBuffer.cpp"/>
+      <FILE id="EeWTdB" name="SignBuffer.h" compile="0" resource="0" file="Source/SignBuffer.h"/>
       <FILE id="YVFrne" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="C21A75" name="PluginProcessor.h" compile="0" resource="0"

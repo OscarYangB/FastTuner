@@ -58,5 +58,5 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NewProjectAudioProcessor)
 
     const double minimumFrequency = 164.81;
-    SignBuffer* signBuffers;
+    SignBuffer signBuffer;
 };
