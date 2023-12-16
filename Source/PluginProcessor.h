@@ -11,6 +11,8 @@
 #include <JuceHeader.h>
 #include "SignBuffer.h"
 
+constexpr auto FILTERCOUNT = 3;
+
 //==============================================================================
 /**
 */
@@ -71,4 +73,14 @@ private:
 
     const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
+
+    double currentPitch = 0.0;
+
+    juce::dsp::IIR::Filter<float> filters[FILTERCOUNT] = {};
+
+    void UpdateFilters();
+
+    static juce::String getNameFromInt(const int Value);
+
+    std::array<float, FILTERCOUNT> GetSettings();
 };

@@ -5,8 +5,8 @@ public:
 	SignBuffer() : SignBuffer(100) {};
 	SignBuffer(const unsigned int newLength);
 
-	void WriteSignToBuffer(const bool sign);
-	double GetPeriod();
+	bool WriteSignToBuffer(const bool sign);
+	double GetPitch(const double sampleRate);
 
 private:
 	static const unsigned int threshold;

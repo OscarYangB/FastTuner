@@ -96,6 +96,18 @@ void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     const int totalNumInputChannels = getTotalNumInputChannels();
     const unsigned int bufferLength = (int) ceil(sampleRate / minimumFrequency) * 2;
     signBuffer = SignBuffer(bufferLength);
+
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = 1;
+    spec.sampleRate = sampleRate;
+
+    for (int i = 0; i < FILTERCOUNT; ++i)
+    {
+        filters[i].prepare(spec);
+    }
+
+    UpdateFilters();
 }
 
 void NewProjectAudioProcessor::releaseResources()
@@ -132,32 +144,22 @@ bool NewProjectAudioProcessor::isBusesLayoutSupported (const BusesLayout& layout
 
 void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    int totalNumInputChannels  = getTotalNumInputChannels();
-    int totalNumOutputChannels = getTotalNumOutputChannels();
+    float* const samples = buffer.getWritePointer(0);
 
-    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i) 
-    {
-        buffer.clear(i, 0, buffer.getNumSamples());
-    }
-
-    float* const* samples = buffer.getArrayOfWritePointers();
     for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
     {
-        double monoSample = 0.0;
-        for (int channelIndex = 0; channelIndex < totalNumInputChannels; ++channelIndex)
+        bool sign = signbit(samples[sampleIndex]);
+        if (signBuffer.WriteSignToBuffer(sign))
         {
-            monoSample += samples[channelIndex][sampleIndex];
+            currentPitch = signBuffer.GetPitch(getSampleRate());
+            DBG(currentPitch);
+            UpdateFilters();
         }
-
-        bool sign = signbit(monoSample);
-        signBuffer.WriteSignToBuffer(sign);
+        for (int i = 0; i < FILTERCOUNT; ++i)
+        {
+            samples[sampleIndex] = filters[i].processSample(samples[sampleIndex]);
+        }
     }
-
-    const double sampleDifference = signBuffer.GetPeriod();
-    if (sampleDifference == 0.0) return;
-    const double secondsDifference = sampleDifference / getSampleRate();
-    const double frequency = 1 / secondsDifference;
-    DBG(frequency);
 }
 
 //==============================================================================
@@ -189,10 +191,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::Cr
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    for (int i = 1; i <= 20; i++) 
+    for (int i = 1; i <= FILTERCOUNT; i++)
     {
-        juce::String name = "f";
-        name.append(juce::String(i), 2);
+        juce::String name = getNameFromInt(i);
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             name,
@@ -203,6 +204,45 @@ juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::Cr
     }
 
     return layout;
+}
+
+void NewProjectAudioProcessor::UpdateFilters()
+{
+    if (currentPitch <= 0.0) return;
+
+    std::array<float, FILTERCOUNT> gains = GetSettings();
+
+    for (int i = 0; i < FILTERCOUNT; ++i)
+    {
+        double harmonicPitch = currentPitch * (i + 1);
+        if (harmonicPitch > getSampleRate() * 0.5) 
+        {
+            continue;
+        }
+        filters[i].coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            getSampleRate(), harmonicPitch, 1.0, juce::Decibels::decibelsToGain(gains[i]));
+    }
+}
+
+juce::String NewProjectAudioProcessor::getNameFromInt(const int Value)
+{
+    juce::String name = "f";
+    name.append(juce::String(Value), 2);
+    return name;
+}
+
+std::array<float, FILTERCOUNT> NewProjectAudioProcessor::GetSettings()
+{
+    std::array<float, FILTERCOUNT> settings = std::array<float, FILTERCOUNT>();
+    for (int i = 0; i < FILTERCOUNT; ++i)
+    {
+        auto value = apvts.getRawParameterValue(getNameFromInt(i));
+        if (value != nullptr) 
+        {
+            settings[i] = *value;
+        }
+    }
+    return settings;
 }
 
 //==============================================================================

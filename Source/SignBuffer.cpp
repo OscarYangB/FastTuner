@@ -12,7 +12,7 @@ SignBuffer::SignBuffer(const unsigned int newLength)
 	writePointer = 0;
 }
 
-void SignBuffer::WriteSignToBuffer(const bool sign)
+bool SignBuffer::WriteSignToBuffer(const bool sign)
 {
 	signs[writePointer] = sign;
 	writePointer++;
@@ -21,12 +21,18 @@ void SignBuffer::WriteSignToBuffer(const bool sign)
 	if (writePointer == 0)
 	{
 		currentPeriod = CalculatePeriod();
+		return true;
 	}
+
+	return false;
 }
 
-double SignBuffer::GetPeriod()
+double SignBuffer::GetPitch(const double sampleRate)
 {
-	return currentPeriod;
+	if (currentPeriod == 0.0) return 0.0f;
+	const double secondsDifference = currentPeriod / sampleRate;
+	const double frequency = 1 / secondsDifference;
+	return frequency;
 }
 
 double SignBuffer::CalculatePeriod()
