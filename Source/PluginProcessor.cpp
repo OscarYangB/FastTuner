@@ -93,18 +93,17 @@ void NewProjectAudioProcessor::changeProgramName (int index, const juce::String&
 //==============================================================================
 void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    const int totalNumInputChannels = getTotalNumInputChannels();
     const unsigned int bufferLength = (int) ceil(sampleRate / minimumFrequency) * 2;
     signBuffer = SignBuffer(bufferLength);
 
-    juce::dsp::ProcessSpec spec;
+    juce::dsp::ProcessSpec spec = juce::dsp::ProcessSpec();
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = 1;
     spec.sampleRate = sampleRate;
 
     for (int i = 0; i < FILTERCOUNT; ++i)
     {
-        filters[i].prepare(spec);
+        filters[i].filter.prepare(spec);
     }
 
     UpdateFilters();
@@ -157,7 +156,11 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         }
         for (int i = 0; i < FILTERCOUNT; ++i)
         {
-            samples[sampleIndex] = filters[i].processSample(samples[sampleIndex]);
+            if (!filters[i].isEnabled) 
+            {
+                break;
+            }
+            samples[sampleIndex] = filters[i].filter.processSample(samples[sampleIndex]);
         }
     }
 }
@@ -208,20 +211,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::Cr
 
 void NewProjectAudioProcessor::UpdateFilters()
 {
-    if (currentPitch <= 0.0) return;
+    if (!isValidPitch(currentPitch, getSampleRate()))
+    {
+        filters[0].isEnabled = false;
+        return;
+    }
 
     std::array<float, FILTERCOUNT> gains = GetSettings();
-
     for (int i = 0; i < FILTERCOUNT; ++i)
     {
         double harmonicPitch = currentPitch * (i + 1);
-        if (harmonicPitch > getSampleRate() * 0.5) 
+        if (!isValidPitch(harmonicPitch, getSampleRate()))
         {
-            continue;
+            filters[i].isEnabled = false;
+            return;
         }
-        filters[i].coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-            getSampleRate(), harmonicPitch, 1.0, juce::Decibels::decibelsToGain(gains[i]));
+        filters[i].isEnabled = true;
+        filters[i].filter.coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            getSampleRate(), harmonicPitch, 5.0f, juce::Decibels::decibelsToGain(gains[i]));
     }
+}
+
+bool NewProjectAudioProcessor::isValidPitch(const double pitch, const double sampleRate)
+{
+    return (pitch > 0 && pitch < sampleRate * 0.5);
 }
 
 juce::String NewProjectAudioProcessor::getNameFromInt(const int Value)

@@ -11,7 +11,7 @@
 #include <JuceHeader.h>
 #include "SignBuffer.h"
 
-constexpr auto FILTERCOUNT = 3;
+constexpr auto FILTERCOUNT = 10;
 
 //==============================================================================
 /**
@@ -71,14 +71,28 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NewProjectAudioProcessor)
 
+    struct Filter
+    {
+        Filter() 
+        {
+            filter = juce::dsp::IIR::Filter<float>();
+            isEnabled = false;
+        }
+
+        juce::dsp::IIR::Filter<float> filter;
+        bool isEnabled;
+    };
+
     const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
 
     double currentPitch = 0.0;
 
-    juce::dsp::IIR::Filter<float> filters[FILTERCOUNT] = {};
+    Filter filters[FILTERCOUNT] = {};
 
     void UpdateFilters();
+
+    bool isValidPitch(const double pitch, const double sampleRate);
 
     static juce::String getNameFromInt(const int Value);
 
