@@ -53,10 +53,22 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+
+    static juce::AudioProcessorValueTreeState::ParameterLayout
+        CreateParameterLayout();
+
+    juce::AudioProcessorValueTreeState apvts
+    {
+        *this,
+        nullptr,
+        "Parameters",
+        CreateParameterLayout()
+    };
+
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NewProjectAudioProcessor)
 
-    const double minimumFrequency = 164.81;
+    const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
 };

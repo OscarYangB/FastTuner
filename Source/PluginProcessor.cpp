@@ -168,7 +168,7 @@ bool NewProjectAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NewProjectAudioProcessor::createEditor()
 {
-    return new NewProjectAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -183,6 +183,26 @@ void NewProjectAudioProcessor::setStateInformation (const void* data, int sizeIn
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::CreateParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    for (int i = 1; i <= 20; i++) 
+    {
+        juce::String name = "f";
+        name.append(juce::String(i), 2);
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            name,
+            name,
+            juce::NormalisableRange<float>(-20.0f, 20.0, 0.1f, 1.0f),
+            0.0f
+        ));
+    }
+
+    return layout;
 }
 
 //==============================================================================
