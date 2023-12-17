@@ -103,7 +103,7 @@ void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 
     for (int i = 0; i < FILTERCOUNT; ++i)
     {
-        filters[i].filter.prepare(spec);
+        filters[i].prepare(spec);
     }
 
     UpdateFilters();
@@ -154,13 +154,9 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
             DBG(currentPitch);
             UpdateFilters();
         }
-        for (int i = 0; i < FILTERCOUNT; ++i)
+        for (int i = 0; i <= lastValidFilter; ++i)
         {
-            if (!filters[i].isEnabled) 
-            {
-                break;
-            }
-            samples[sampleIndex] = filters[i].filter.processSample(samples[sampleIndex]);
+            samples[sampleIndex] = filters[i].processSample(samples[sampleIndex]);
         }
     }
 }
@@ -213,7 +209,7 @@ void NewProjectAudioProcessor::UpdateFilters()
 {
     if (!isValidPitch(currentPitch, getSampleRate()))
     {
-        filters[0].isEnabled = false;
+        lastValidFilter = -1;
         return;
     }
 
@@ -223,11 +219,15 @@ void NewProjectAudioProcessor::UpdateFilters()
         double harmonicPitch = currentPitch * (i + 1);
         if (!isValidPitch(harmonicPitch, getSampleRate()))
         {
-            filters[i].isEnabled = false;
+            lastValidFilter = i - 1;
             return;
         }
-        filters[i].isEnabled = true;
-        filters[i].filter.coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        if (lastValidFilter < i)
+        {
+            lastValidFilter = i;
+            filters[i].reset();
+        }
+        filters[i].coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
             getSampleRate(), harmonicPitch, 5.0f, juce::Decibels::decibelsToGain(gains[i]));
     }
 }

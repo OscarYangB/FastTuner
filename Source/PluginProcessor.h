@@ -71,24 +71,12 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NewProjectAudioProcessor)
 
-    struct Filter
-    {
-        Filter() 
-        {
-            filter = juce::dsp::IIR::Filter<float>();
-            isEnabled = false;
-        }
-
-        juce::dsp::IIR::Filter<float> filter;
-        bool isEnabled;
-    };
-
     const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
 
     double currentPitch = 0.0;
 
-    Filter filters[FILTERCOUNT] = {};
+    juce::dsp::IIR::Filter<float> filters[FILTERCOUNT] = {};
 
     void UpdateFilters();
 
@@ -97,4 +85,6 @@ private:
     static juce::String getNameFromInt(const int Value);
 
     std::array<float, FILTERCOUNT> GetSettings();
+
+    int lastValidFilter = -1;
 };
