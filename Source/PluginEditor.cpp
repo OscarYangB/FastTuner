@@ -13,9 +13,8 @@
 NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
     setSize (400, 300);
+    startTimerHz(165);
 }
 
 NewProjectAudioProcessorEditor::~NewProjectAudioProcessorEditor()
@@ -30,11 +29,21 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (15.0f);
-    //g.drawFittedText (Message, getLocalBounds(), juce::Justification::centred, 1);
+    g.drawFittedText (audioProcessor.note, getLocalBounds(), juce::Justification::centred, 1);
+
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(2) << audioProcessor.offset;
+    g.drawFittedText(stream.str(), getLocalBounds(), juce::Justification::centredBottom, 1);
+
 }
 
 void NewProjectAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
+}
+
+void NewProjectAudioProcessorEditor::timerCallback()
+{
+    repaint();
 }

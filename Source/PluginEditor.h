@@ -14,17 +14,16 @@
 //==============================================================================
 /**
 */
-class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor
+class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer
 {
 public:
     NewProjectAudioProcessorEditor (NewProjectAudioProcessor&);
     ~NewProjectAudioProcessorEditor() override;
 
-    juce::String Message;
-
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    virtual void timerCallback() override;
 
 private:
     // This reference is provided as a quick way for your editor to

@@ -139,12 +139,7 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         if (signBuffer.WriteSignToBuffer(sign))
         {
             currentPitch = signBuffer.GetPitch(getSampleRate());
-
-            juce::String Note;
-            double offset;
-            std::tie(Note, offset) = GetNoteAndOffset();
-            DBG(Note);
-            DBG(offset);
+            std::tie(note, offset) = GetNoteAndOffset();
         }
     }
 }
@@ -157,7 +152,7 @@ bool NewProjectAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NewProjectAudioProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new NewProjectAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -181,17 +176,24 @@ std::tuple<juce::String, double> NewProjectAudioProcessor::GetNoteAndOffset()
         return std::tuple<juce::String, double>();
     }
     double SemitonesAboveA4 = 12.0 * std::log2(currentPitch / 440.0);
-    double FractionalPart, IntegralPart;
-    FractionalPart = std::modf(SemitonesAboveA4, &IntegralPart);
-    if (FractionalPart >= 0.5)
+    double fractionalPart, integralPart;
+    fractionalPart = std::modf(SemitonesAboveA4, &integralPart);
+    int IntegralPartInt = (int) integralPart;
+    if (fractionalPart >= 0.5)
     {
-        IntegralPart++;
-        FractionalPart = -(1.0 - FractionalPart);
+        IntegralPartInt++;
+        fractionalPart = -(1.0 - fractionalPart);
     }
-    juce::String CurrentNoteName = NoteNames[(int) IntegralPart % 12];
-    int Octave = ((IntegralPart + 9) / 12) + 4;
+    else if (fractionalPart <= -0.5)
+    {
+        IntegralPartInt--;
+        fractionalPart = 1.0 + fractionalPart;
+    }
+    int index = ((IntegralPartInt % 12) + 12) % 12;
+    juce::String CurrentNoteName = NoteNames[index];
+    int Octave = ((IntegralPartInt + 9) / 12) + 4;
     CurrentNoteName.append(juce::String(Octave), 1);
-    return std::tuple<juce::String, double>(CurrentNoteName, FractionalPart);
+    return std::tuple<juce::String, double>(CurrentNoteName, fractionalPart);
 }
 
 //==============================================================================
