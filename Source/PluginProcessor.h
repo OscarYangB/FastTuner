@@ -56,15 +56,12 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    static juce::AudioProcessorValueTreeState::ParameterLayout
-        CreateParameterLayout();
-
     juce::AudioProcessorValueTreeState apvts
     {
         *this,
         nullptr,
         "Parameters",
-        CreateParameterLayout()
+        juce::AudioProcessorValueTreeState::ParameterLayout()
     };
 
 private:
@@ -73,18 +70,5 @@ private:
 
     const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
-
     double currentPitch = 0.0;
-
-    juce::dsp::IIR::Filter<float> filters[FILTERCOUNT] = {};
-
-    void UpdateFilters();
-
-    bool isValidPitch(const double pitch, const double sampleRate);
-
-    static juce::String getNameFromInt(const int Value);
-
-    std::array<float, FILTERCOUNT> GetSettings();
-
-    int lastValidFilter = -1;
 };

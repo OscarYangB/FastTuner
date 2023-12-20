@@ -95,18 +95,6 @@ void NewProjectAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
 {
     const unsigned int bufferLength = (int) ceil(sampleRate / minimumFrequency) * 2;
     signBuffer = SignBuffer(bufferLength);
-
-    juce::dsp::ProcessSpec spec = juce::dsp::ProcessSpec();
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = 1;
-    spec.sampleRate = sampleRate;
-
-    for (int i = 0; i < FILTERCOUNT; ++i)
-    {
-        filters[i].prepare(spec);
-    }
-
-    UpdateFilters();
 }
 
 void NewProjectAudioProcessor::releaseResources()
@@ -152,11 +140,6 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         {
             currentPitch = signBuffer.GetPitch(getSampleRate());
             DBG(currentPitch);
-            UpdateFilters();
-        }
-        for (int i = 0; i <= lastValidFilter; ++i)
-        {
-            samples[sampleIndex] = filters[i].processSample(samples[sampleIndex]);
         }
     }
 }
@@ -184,78 +167,6 @@ void NewProjectAudioProcessor::setStateInformation (const void* data, int sizeIn
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
-}
-
-juce::AudioProcessorValueTreeState::ParameterLayout NewProjectAudioProcessor::CreateParameterLayout()
-{
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-
-    for (int i = 1; i <= FILTERCOUNT; i++)
-    {
-        juce::String name = getNameFromInt(i);
-
-        layout.add(std::make_unique<juce::AudioParameterFloat>(
-            name,
-            name,
-            juce::NormalisableRange<float>(-20.0f, 20.0, 0.1f, 1.0f),
-            0.0f
-        ));
-    }
-
-    return layout;
-}
-
-void NewProjectAudioProcessor::UpdateFilters()
-{
-    if (!isValidPitch(currentPitch, getSampleRate()))
-    {
-        lastValidFilter = -1;
-        return;
-    }
-
-    std::array<float, FILTERCOUNT> gains = GetSettings();
-    for (int i = 0; i < FILTERCOUNT; ++i)
-    {
-        double harmonicPitch = currentPitch * (i + 1);
-        if (!isValidPitch(harmonicPitch, getSampleRate()))
-        {
-            lastValidFilter = i - 1;
-            return;
-        }
-        if (lastValidFilter < i)
-        {
-            lastValidFilter = i;
-            filters[i].reset();
-        }
-        filters[i].coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-            getSampleRate(), harmonicPitch, 5.0f, juce::Decibels::decibelsToGain(gains[i]));
-    }
-}
-
-bool NewProjectAudioProcessor::isValidPitch(const double pitch, const double sampleRate)
-{
-    return (pitch > 0 && pitch < sampleRate * 0.5);
-}
-
-juce::String NewProjectAudioProcessor::getNameFromInt(const int Value)
-{
-    juce::String name = "f";
-    name.append(juce::String(Value), 2);
-    return name;
-}
-
-std::array<float, FILTERCOUNT> NewProjectAudioProcessor::GetSettings()
-{
-    std::array<float, FILTERCOUNT> settings = std::array<float, FILTERCOUNT>();
-    for (int i = 0; i < FILTERCOUNT; ++i)
-    {
-        auto value = apvts.getRawParameterValue(getNameFromInt(i));
-        if (value != nullptr) 
-        {
-            settings[i] = *value;
-        }
-    }
-    return settings;
 }
 
 //==============================================================================
