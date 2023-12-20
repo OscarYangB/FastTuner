@@ -139,7 +139,12 @@ void NewProjectAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         if (signBuffer.WriteSignToBuffer(sign))
         {
             currentPitch = signBuffer.GetPitch(getSampleRate());
-            DBG(currentPitch);
+
+            juce::String Note;
+            double offset;
+            std::tie(Note, offset) = GetNoteAndOffset();
+            DBG(Note);
+            DBG(offset);
         }
     }
 }
@@ -167,6 +172,26 @@ void NewProjectAudioProcessor::setStateInformation (const void* data, int sizeIn
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+std::tuple<juce::String, double> NewProjectAudioProcessor::GetNoteAndOffset()
+{
+    if (currentPitch <= 0.0) 
+    {
+        return std::tuple<juce::String, double>();
+    }
+    double SemitonesAboveA4 = 12.0 * std::log2(currentPitch / 440.0);
+    double FractionalPart, IntegralPart;
+    FractionalPart = std::modf(SemitonesAboveA4, &IntegralPart);
+    if (FractionalPart >= 0.5)
+    {
+        IntegralPart++;
+        FractionalPart = -(1.0 - FractionalPart);
+    }
+    juce::String CurrentNoteName = NoteNames[(int) IntegralPart % 12];
+    int Octave = ((IntegralPart + 9) / 12) + 4;
+    CurrentNoteName.append(juce::String(Octave), 1);
+    return std::tuple<juce::String, double>(CurrentNoteName, FractionalPart);
 }
 
 //==============================================================================

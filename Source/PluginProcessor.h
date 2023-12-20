@@ -71,4 +71,22 @@ private:
     const double minimumFrequency = 73.42;
     SignBuffer signBuffer;
     double currentPitch = 0.0;
+
+    std::tuple<juce::String, double> GetNoteAndOffset();
+
+    juce::String NoteNames[12] =
+    {
+        "A",
+        "ASharp",
+        "B",
+        "C",
+        "CSharp",
+        "D",
+        "DSharp",
+        "E",
+        "F",
+        "FSharp",
+        "G",
+        "GSharp"
+    };
 };
